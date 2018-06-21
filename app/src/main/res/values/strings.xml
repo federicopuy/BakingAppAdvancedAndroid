@@ -1,0 +1,12 @@
+<resources>
+    <string name="title_step_list">Steps</string>
+    <string name="title_step_detail">Step Detail</string>
+    <string name="recipes">Recipes</string>
+    <string name="ingredients">Ingredients</string>
+    <string name="steps">Steps</string>
+    <string name="error_recipe">Error retrieving info from recipe</string>
+    <string name="no_internet_error">No Internet Connection</string>
+    <string name="previous_button">Previous Button</string>
+    <string name="play_button">Play Button</string>
+    <string name="pause_button">Pause Button</string>
+</resources>
