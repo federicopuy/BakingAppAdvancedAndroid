@@ -58,7 +58,8 @@ public class StepDetailFragment extends Fragment implements ExoPlayer.EventListe
     private static final String TAG = "Fragment";
     private static final String POSITION = "position";
     private TextView tvDescription;
-    private long position;
+    private long position = 0;
+    private int fabVisibility;
 
 
     public StepDetailFragment() {
@@ -242,7 +243,11 @@ public class StepDetailFragment extends Fragment implements ExoPlayer.EventListe
     public void onPause() {
         super.onPause();
         if (mPlayerView != null) {
-            position = mExoPlayer.getCurrentPosition();
+            try {
+                position = mExoPlayer.getCurrentPosition();
+            }catch (NullPointerException n){
+                n.printStackTrace();
+            }
             releasePlayer();
             mMediaSession.setActive(false);
         }
@@ -269,6 +274,7 @@ public class StepDetailFragment extends Fragment implements ExoPlayer.EventListe
             params.height = params.MATCH_PARENT;
             mPlayerView.setLayoutParams(params);
             ((AppCompatActivity) getActivity()).getSupportActionBar().hide();
+            fabVisibility = ((AppCompatActivity) getActivity()).findViewById(R.id.fabNextStep).getVisibility();
             ((AppCompatActivity) getActivity()).findViewById(R.id.fabNextStep).setVisibility(View.INVISIBLE);
 
         } else if (newConfig.orientation == Configuration.ORIENTATION_PORTRAIT && mPlayerView != null) {
@@ -278,7 +284,9 @@ public class StepDetailFragment extends Fragment implements ExoPlayer.EventListe
             params.height = params.MATCH_PARENT;
             mPlayerView.setLayoutParams(params);
             ((AppCompatActivity) getActivity()).getSupportActionBar().show();
-            ((AppCompatActivity) getActivity()).findViewById(R.id.fabNextStep).setVisibility(View.VISIBLE);
+            if (fabVisibility==View.VISIBLE) {
+                ((AppCompatActivity) getActivity()).findViewById(R.id.fabNextStep).setVisibility(View.VISIBLE);
+            }
         }
     }
 
