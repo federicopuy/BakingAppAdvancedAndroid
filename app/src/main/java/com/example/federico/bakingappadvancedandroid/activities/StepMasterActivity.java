@@ -65,7 +65,6 @@ public class StepMasterActivity extends AppCompatActivity {
         if (findViewById(R.id.step_detail_container) != null) {
             mTwoPane = true;
         }
-
         // setup recyclerview showing ingredients
         View recyclerViewIngredients = findViewById(R.id.ingredients_list);
         assert recyclerViewIngredients != null;

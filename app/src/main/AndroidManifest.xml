@@ -35,8 +35,7 @@
         <activity
             android:name=".activities.StepDetailActivity"
             android:label="@string/title_step_detail"
-            android:parentActivityName=".activities.StepMasterActivity"
-            android:configChanges="orientation|screenSize|keyboardHidden">
+            android:parentActivityName=".activities.StepMasterActivity">
             <meta-data
                 android:name="android.support.PARENT_ACTIVITY"
                 android:value="com.example.federico.bakingappadvancedandroid.activities.StepMasterActivity" />

@@ -7,28 +7,30 @@ import android.os.Bundle;
 import android.support.v7.widget.GridLayoutManager;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
+import android.util.Log;
+import android.widget.Toast;
 
 import com.example.federico.bakingappadvancedandroid.R;
 import com.example.federico.bakingappadvancedandroid.adapters.RecipesAdapter;
 import com.example.federico.bakingappadvancedandroid.model.Recipe;
+import com.example.federico.bakingappadvancedandroid.network.APIInterface;
+import com.example.federico.bakingappadvancedandroid.network.RetrofitClient;
 import com.example.federico.bakingappadvancedandroid.utils.Constants;
+import com.example.federico.bakingappadvancedandroid.utils.NetworkUtils;
 import com.example.federico.bakingappadvancedandroid.widget.IngredientsWidgetProvider;
 import com.google.gson.Gson;
-import com.google.gson.reflect.TypeToken;
 
-import java.io.IOException;
-import java.io.InputStream;
-import java.lang.reflect.Type;
-import java.util.ArrayList;
 import java.util.List;
 
 import butterknife.ButterKnife;
+import retrofit2.Callback;
+import retrofit2.Response;
 
 public class RecipesActivity extends AppCompatActivity implements RecipesAdapter.ListItemClickListener {
 
+    private final String TAG = "Recipes Activity";
     private final String KEY_RECYCLER_STATE = "recycler_state";
     private RecyclerView mRecyclerView;
-    private boolean mTwoPane = false;
     private RecyclerView.LayoutManager mLayoutManager;
     private Parcelable mListState;
 
@@ -40,7 +42,7 @@ public class RecipesActivity extends AppCompatActivity implements RecipesAdapter
 
         getSupportActionBar();
 
-        mTwoPane = getResources().getBoolean(R.bool.isTablet);
+        boolean mTwoPane = getResources().getBoolean(R.bool.isTablet);
         mRecyclerView = findViewById(R.id.recipes_recycler_view);
 
         if (mTwoPane) {
@@ -49,38 +51,41 @@ public class RecipesActivity extends AppCompatActivity implements RecipesAdapter
             mLayoutManager = new LinearLayoutManager(this);
         }
         mRecyclerView.setLayoutManager(mLayoutManager);
-        populateRecyclerView();
-    }
 
-    private void populateRecyclerView() {
-
-        try {
-            String jsonArray = loadJSONFromAsset();
-            Type listType = new TypeToken<ArrayList<Recipe>>() {
-            }.getType();
-            List<Recipe> recipesList = new Gson().fromJson(jsonArray, listType);
-            RecipesAdapter mAdapter = new RecipesAdapter(recipesList, RecipesActivity.this, RecipesActivity.this);
-            mRecyclerView.setAdapter(mAdapter);
-
-        } catch (Exception e) {
-            e.printStackTrace();
+        if (NetworkUtils.isNetworkAvailable(RecipesActivity.this)) {
+            getRecipes();
+        } else {
+            Toast.makeText(RecipesActivity.this, getString(R.string.no_internet_error), Toast.LENGTH_LONG).show();
         }
     }
 
-    private String loadJSONFromAsset() {
-        String json;
-        try {
-            InputStream is = RecipesActivity.this.getAssets().open("recipes");
-            int size = is.available();
-            byte[] buffer = new byte[size];
-            is.read(buffer);
-            is.close();
-            json = new String(buffer, "UTF-8");
-        } catch (IOException ex) {
-            ex.printStackTrace();
-            return null;
-        }
-        return json;
+    private void getRecipes() {
+
+        APIInterface mService = RetrofitClient.getClient(getApplicationContext()).create(APIInterface.class);
+        retrofit2.Call<List<Recipe>> callGetRecipes = mService.getRecipes();
+        callGetRecipes.enqueue(new Callback<List<Recipe>>() {
+            @Override
+            public void onResponse(retrofit2.Call<List<Recipe>> call, Response<List<Recipe>> response) {
+                if (response.isSuccessful()){
+                    Log.d(TAG,"Response Successful");
+                    List<Recipe> recipesList = response.body();
+                    try{
+                        RecipesAdapter mAdapter = new RecipesAdapter(recipesList, RecipesActivity.this, RecipesActivity.this);
+                        mRecyclerView.setAdapter(mAdapter);
+                    }catch (Exception e){
+                        e.printStackTrace();
+                    }
+
+                } else {
+                    Log.d(TAG,"Response NOT Successful");
+                }
+            }
+
+            @Override
+            public void onFailure(retrofit2.Call<List<Recipe>> call, Throwable t) {
+                Log.d(TAG,"Response onFailure");
+            }
+        });
     }
 
     @Override
@@ -90,7 +95,7 @@ public class RecipesActivity extends AppCompatActivity implements RecipesAdapter
             @Override
             public void run() {
                 // this will send the broadcast to update the appwidget
-                IngredientsWidgetProvider.sendRefreshBroadcast(RecipesActivity.this, clickedRecipe.getId());
+                IngredientsWidgetProvider.sendRefreshBroadcast(RecipesActivity.this, clickedRecipe);
             }
         });
 

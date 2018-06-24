@@ -1,17 +1,19 @@
 package com.example.federico.bakingappadvancedandroid.adapters;
 
-import android.content.res.Configuration;
+import android.content.Context;
 import android.net.Uri;
 import android.os.Bundle;
-import android.support.annotation.NonNull;
 import android.support.v4.app.Fragment;
 import android.support.v4.media.session.MediaSessionCompat;
 import android.support.v4.media.session.PlaybackStateCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
+import android.view.Display;
 import android.view.LayoutInflater;
+import android.view.Surface;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.WindowManager;
 import android.widget.FrameLayout;
 import android.widget.LinearLayout;
 import android.widget.TextView;
@@ -56,11 +58,7 @@ public class StepDetailFragment extends Fragment implements ExoPlayer.EventListe
     private static MediaSessionCompat mMediaSession;
     private PlaybackStateCompat.Builder mStateBuilder;
     private static final String TAG = "Fragment";
-    private static final String POSITION = "position";
-    private TextView tvDescription;
     private long position = 0;
-    private int fabVisibility;
-
 
     public StepDetailFragment() {
     }
@@ -68,7 +66,7 @@ public class StepDetailFragment extends Fragment implements ExoPlayer.EventListe
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-
+        setRetainInstance(true);
         assert getArguments() != null;
         if (getArguments().containsKey(Constants.STEP_FRAGMENT_JSON)) {
             String stepJsonString = getArguments().getString(Constants.STEP_FRAGMENT_JSON, "");
@@ -77,42 +75,67 @@ public class StepDetailFragment extends Fragment implements ExoPlayer.EventListe
         }
     }
 
-
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
-        if (savedInstanceState != null) {
-            //gets the position in case the user has already seen a part of the video
-            position = savedInstanceState.getLong(POSITION, 0);
-        }
 
         View rootView = inflater.inflate(R.layout.step_detail, container, false);
-        if (step != null) {
-            tvDescription = rootView.findViewById(R.id.tvStepDescription);
-            tvDescription.setText(step.getDescription());
-        }
 
         assert step != null;
+        TextView tvDescription = rootView.findViewById(R.id.tvStepDescription);
+        tvDescription.setText(step.getDescription());
         String videoUrl = step.getVideoURL();
 
-        if (!NetworkUtils.isNetworkAvailable(getContext())) {
-            Toast.makeText(getContext(), getString(R.string.no_internet_error), Toast.LENGTH_LONG).show();
-        } else {
-            if (!videoUrl.equals("")) {
-                Log.d(TAG, "Has video URL");
+        if (!videoUrl.equals("")){
+            Log.d(TAG, "Has video URL");
+            if (!NetworkUtils.isNetworkAvailable(getContext())) {
+                Toast.makeText(getContext(), getString(R.string.no_internet_error), Toast.LENGTH_LONG).show();
+            } else {
+
                 mPlayerView = rootView.findViewById(R.id.playerView_exo1);
                 mPlayerView.setVisibility(View.VISIBLE);
                 initializeMediaSession();
                 initializePlayer(Uri.parse(videoUrl));
-            } else {
+
+                if (!getResources().getBoolean(R.bool.isTablet)){
+                    int fabVisibility = getActivity().findViewById(R.id.fabNextStep).getVisibility();
+                    Display display = ((WindowManager) getContext().getSystemService(Context.WINDOW_SERVICE)).getDefaultDisplay();
+                int rotation = display.getRotation();
+
+                if ((rotation==Surface.ROTATION_90)|| rotation==Surface.ROTATION_270){
+                    //landscape mode
+                    tvDescription.setVisibility(View.GONE);
+                    FrameLayout.LayoutParams params = (FrameLayout.LayoutParams) mPlayerView.getLayoutParams();
+                    params.width = params.MATCH_PARENT;
+                    params.height = params.MATCH_PARENT;
+                    mPlayerView.setLayoutParams(params);
+                    ((AppCompatActivity) getActivity()).getSupportActionBar().hide();
+                    ((AppCompatActivity) getActivity()).findViewById(R.id.fabNextStep).setVisibility(View.INVISIBLE);
+
+                }else {
+                    //portrait mode
+                    tvDescription.setVisibility(View.VISIBLE);
+                    FrameLayout.LayoutParams params = (FrameLayout.LayoutParams) mPlayerView.getLayoutParams();
+                    params.width = params.MATCH_PARENT;
+                    params.height = params.MATCH_PARENT;
+                    mPlayerView.setLayoutParams(params);
+                    ((AppCompatActivity) getActivity()).getSupportActionBar().show();
+                    if (fabVisibility == View.VISIBLE) {
+                        (getActivity()).findViewById(R.id.fabNextStep).setVisibility(View.VISIBLE);
+                    }
+                }
+                }
+            }
+
+        } else {
                 Log.d(TAG, "Does not have video URL");
                 //hide the video player and center the textview showing the step description
                 FrameLayout frameLayout = rootView.findViewById(R.id.frameLayoutDetail);
                 LinearLayout linearLayout = rootView.findViewById(R.id.linearLayoutDetail);
                 linearLayout.removeView(tvDescription);
                 frameLayout.addView(tvDescription);
-            }
         }
+
         return rootView;
     }
 
@@ -150,7 +173,6 @@ public class StepDetailFragment extends Fragment implements ExoPlayer.EventListe
         mMediaSession.setActive(true);
 
     }
-
 
     /**
      * Media Session Callbacks, where all external clients control the player.
@@ -200,7 +222,6 @@ public class StepDetailFragment extends Fragment implements ExoPlayer.EventListe
             }
         }
     }
-
 
     @Override
     public void onTimelineChanged(Timeline timeline, Object manifest) {
@@ -260,40 +281,6 @@ public class StepDetailFragment extends Fragment implements ExoPlayer.EventListe
         mExoPlayer.stop();
         mExoPlayer.release();
         mExoPlayer = null;
-    }
-
-    //copied from https://stackoverflow.com/questions/46713761/how-to-play-video-full-screen-in-landscape-using-exoplayer
-    @Override
-    public void onConfigurationChanged(Configuration newConfig) {
-        super.onConfigurationChanged(newConfig);
-
-        if (newConfig.orientation == Configuration.ORIENTATION_LANDSCAPE && mPlayerView != null) {
-            tvDescription.setVisibility(View.GONE);
-            FrameLayout.LayoutParams params = (FrameLayout.LayoutParams) mPlayerView.getLayoutParams();
-            params.width = params.MATCH_PARENT;
-            params.height = params.MATCH_PARENT;
-            mPlayerView.setLayoutParams(params);
-            ((AppCompatActivity) getActivity()).getSupportActionBar().hide();
-            fabVisibility = ((AppCompatActivity) getActivity()).findViewById(R.id.fabNextStep).getVisibility();
-            ((AppCompatActivity) getActivity()).findViewById(R.id.fabNextStep).setVisibility(View.INVISIBLE);
-
-        } else if (newConfig.orientation == Configuration.ORIENTATION_PORTRAIT && mPlayerView != null) {
-            tvDescription.setVisibility(View.VISIBLE);
-            FrameLayout.LayoutParams params = (FrameLayout.LayoutParams) mPlayerView.getLayoutParams();
-            params.width = params.MATCH_PARENT;
-            params.height = params.MATCH_PARENT;
-            mPlayerView.setLayoutParams(params);
-            ((AppCompatActivity) getActivity()).getSupportActionBar().show();
-            if (fabVisibility==View.VISIBLE) {
-                ((AppCompatActivity) getActivity()).findViewById(R.id.fabNextStep).setVisibility(View.VISIBLE);
-            }
-        }
-    }
-
-    @Override
-    public void onSaveInstanceState(@NonNull Bundle outState) {
-        super.onSaveInstanceState(outState);
-        outState.putLong(POSITION, position);
     }
 
 }

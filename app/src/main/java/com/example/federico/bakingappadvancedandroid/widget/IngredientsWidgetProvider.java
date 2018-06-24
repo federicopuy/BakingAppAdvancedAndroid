@@ -12,18 +12,21 @@ import android.widget.RemoteViews;
 
 import com.example.federico.bakingappadvancedandroid.R;
 import com.example.federico.bakingappadvancedandroid.activities.StepMasterActivity;
+import com.example.federico.bakingappadvancedandroid.model.Recipe;
 import com.example.federico.bakingappadvancedandroid.utils.Constants;
+import com.google.gson.Gson;
 
 /**
  * Implementation of App Widget functionality.
  */
 public class IngredientsWidgetProvider extends AppWidgetProvider {
 
-    static Integer recipeId;
+    static Recipe recipe;
 
-    public static void sendRefreshBroadcast(Context context, Integer id) {
+    public static void sendRefreshBroadcast(Context context, Recipe recipe) {
         Intent intent = new Intent(AppWidgetManager.ACTION_APPWIDGET_UPDATE);
-        intent.putExtra(Constants.RECIPE_ID, id);
+        Gson recipeGson = new Gson();
+        intent.putExtra(Constants.RECIPE_ID, recipeGson.toJson(recipe));
         intent.setComponent(new ComponentName(context, IngredientsWidgetProvider.class));
         context.sendBroadcast(intent);
     }
@@ -31,8 +34,10 @@ public class IngredientsWidgetProvider extends AppWidgetProvider {
     @Override
     public void onReceive(Context context, Intent intent) {
 
-        if (intent.getIntExtra(Constants.RECIPE_ID, -1) != -1) {
-            recipeId = intent.getIntExtra(Constants.RECIPE_ID, -1);
+        if (intent.hasExtra(Constants.RECIPE_ID)){
+            String recipeJson = intent.getStringExtra(Constants.RECIPE_ID);
+            Gson recipeGson = new Gson();
+            recipe = recipeGson.fromJson(recipeJson, Recipe.class);
         }
 
         final String action = intent.getAction();
@@ -47,11 +52,11 @@ public class IngredientsWidgetProvider extends AppWidgetProvider {
 
     @Override
     public void onUpdate(Context context, AppWidgetManager appWidgetManager, int[] appWidgetIds) {
-
         for (int appWidgetId : appWidgetIds) {
             Intent intent = new Intent(context, UpdatingIngredientsListService.class);
             intent.putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, appWidgetId);
-            intent.putExtra(Constants.RECIPE_ID, recipeId);
+            Gson recipeGson = new Gson();
+            intent.putExtra(Constants.RECIPE_ID, recipeGson.toJson(recipe));
             intent.setData(Uri.parse(intent.toUri(Intent.URI_INTENT_SCHEME)));
             RemoteViews views = new RemoteViews(context.getPackageName(), R.layout.ingredients_widget_provider);
             views.setRemoteAdapter(R.id.widgetListView, intent);

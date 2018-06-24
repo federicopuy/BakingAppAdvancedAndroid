@@ -10,12 +10,7 @@ import com.example.federico.bakingappadvancedandroid.model.Ingredient;
 import com.example.federico.bakingappadvancedandroid.model.Recipe;
 import com.example.federico.bakingappadvancedandroid.utils.Constants;
 import com.google.gson.Gson;
-import com.google.gson.reflect.TypeToken;
 
-import java.io.IOException;
-import java.io.InputStream;
-import java.lang.reflect.Type;
-import java.util.ArrayList;
 import java.util.List;
 
 public class UpdatingIngredientsListService extends RemoteViewsService {
@@ -30,7 +25,6 @@ public class UpdatingIngredientsListService extends RemoteViewsService {
     class IngredientsWidgetViewsFactory implements RemoteViewsFactory {
 
         final Context mContext;
-        Integer recipeId;
         List<Ingredient> ingredientList;
         Recipe selectedRecipe;
 
@@ -45,21 +39,13 @@ public class UpdatingIngredientsListService extends RemoteViewsService {
         @Override
         public void onDataSetChanged() {
 
-            recipeId = IngredientsWidgetProvider.recipeId;
+            assert IngredientsWidgetProvider.recipe!=null;
             try {
-                String jsonArray = loadJSONFromAsset();
-                Type listType = new TypeToken<ArrayList<Recipe>>() {
-                }.getType();
-                List<Recipe> recipesList = new Gson().fromJson(jsonArray, listType);
-                for (Recipe recipe : recipesList) {
-                    if (recipe.getId() == recipeId) {
-                        selectedRecipe = recipe;
-                        ingredientList = recipe.getIngredients();
-                    }
-                }
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
+               selectedRecipe = IngredientsWidgetProvider.recipe;
+               ingredientList = selectedRecipe.getIngredients();
+           }catch (Exception e){
+               e.printStackTrace();
+           }
         }
 
         @Override
@@ -76,7 +62,7 @@ public class UpdatingIngredientsListService extends RemoteViewsService {
 
             RemoteViews rv = new RemoteViews(mContext.getPackageName(), R.layout.each_list_item);
 
-            if (recipeId != null) {
+            if (selectedRecipe != null) {
                 Ingredient ingredient = ingredientList.get(i);
                 String textToDisplay = ingredient.getQuantity() + " " +
                         ingredient.getMeasure() + " " +
@@ -110,20 +96,5 @@ public class UpdatingIngredientsListService extends RemoteViewsService {
             return false;
         }
 
-        String loadJSONFromAsset() {
-            String json;
-            try {
-                InputStream is = mContext.getAssets().open("recipes");
-                int size = is.available();
-                byte[] buffer = new byte[size];
-                is.read(buffer);
-                is.close();
-                json = new String(buffer, "UTF-8");
-            } catch (IOException ex) {
-                ex.printStackTrace();
-                return null;
-            }
-            return json;
-        }
     }
 }
