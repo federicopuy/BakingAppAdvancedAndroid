@@ -86,8 +86,8 @@ public class StepDetailFragment extends Fragment implements ExoPlayer.EventListe
         tvDescription.setText(step.getDescription());
         String videoUrl = step.getVideoURL();
 
-        if (!videoUrl.equals("")){
-            Log.d(TAG, "Has video URL");
+        if ((!videoUrl.equals(""))&& (videoUrl.contains(".mp4"))){
+            Log.d(TAG, "Has valid video URL");
             if (!NetworkUtils.isNetworkAvailable(getContext())) {
                 Toast.makeText(getContext(), getString(R.string.no_internet_error), Toast.LENGTH_LONG).show();
             } else {
